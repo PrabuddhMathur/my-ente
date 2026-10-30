@@ -1,38 +1,36 @@
 # museum's settings. Copy to museum.yaml next to compose.yaml on the server and fill in
-# every <...> there. museum.yaml is git-ignored: keep it that way, it holds every key.
+# every <...> there. Nothing secret goes in here: the passwords and keys are in .env, which
+# compose hands to museum as ENTE_* variables, and those win over this file.
 
 db:
   host: postgres
   port: 5432
   name: ente_db
   user: pguser
-  password: <same as ENTE_DB_PASSWORD in .env>
+  # password: ENTE_DB_PASSWORD in .env
 
 s3:
   # false: an external bucket over HTTPS (true is for a local MinIO without SSL).
   are_local_buckets: false
-  # Hetzner takes both URL styles; path style (endpoint/bucket/...) is Ente's default.
+  # Path style (endpoint/bucket/...) is Ente's default; Backblaze and Hetzner both take it.
   use_path_style_urls: true
-  # "b2-eu-cen" is a name hardcoded in Ente for the primary bucket: keep it as it is.
+  # "b2-eu-cen" is a name hardcoded in Ente for the primary bucket, and saved next to every
+  # file in the database: keep it, whichever provider holds the bucket. Moving to another
+  # one means copying the bucket's contents and changing the lines below and the key in .env.
   # The quickstart also defines "wasabi-eu-central-2-v3" and "scw-eu-fr-v3": those are the
   # replicas, used only if replication is turned on, so one bucket is enough here.
   b2-eu-cen:
-    key: <Hetzner S3 access key>
-    secret: <Hetzner S3 secret key>
-    endpoint: https://fsn1.your-objectstorage.com   # your bucket's location: fsn1, nbg1 or hel1
-    region: fsn1
+    # key and secret: ENTE_S3_B2_EU_CEN_KEY and ENTE_S3_B2_EU_CEN_SECRET in .env.
+    # Without https://, as Ente's docs write it. The region is the endpoint's middle part.
+    #   Backblaze: the bucket's page shows it, e.g. s3.eu-central-003.backblazeb2.com
+    #   Hetzner:   fsn1.your-objectstorage.com (or nbg1, hel1), region fsn1
+    endpoint: <bucket endpoint>
+    region: <region>
     bucket: <bucket name>
-
-key:
-  encryption: <openssl rand -base64 32>
-  hash: <openssl rand -base64 64 | tr -d '\n'>
-
-jwt:
-  secret: <openssl rand -base64 32 | tr '+/' '-_'>
 
 # Where the web apps live, for the links museum hands out. Only the albums app is hosted here.
 # The others (accounts, cast, embed-albums, public-memories, public-locker, public-paste,
-# photobook) each need a Caddy block for their port on ente-web before they go in.
+# photobook) each need a Caddy block for their port on web before they go in.
 apps:
   public-albums: https://albums.prabuddh.in
 
@@ -43,7 +41,7 @@ smtp:
   host: smtp.hostinger.com
   port: 587
   username: <mailbox, e.g. photos@prabuddh.in>
-  password: <its password>
+  # password: ENTE_SMTP_PASSWORD in .env
   email: <the same mailbox>
   # sender-name: Photos
 
