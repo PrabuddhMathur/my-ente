@@ -1,4 +1,5 @@
-# museum's settings. Fill in every <...> on the server, never commit the filled-in file.
+# museum's settings. Copy to museum.yaml next to compose.yaml on the server and fill in
+# every <...> there. museum.yaml is git-ignored: keep it that way, it holds every key.
 
 db:
   host: postgres

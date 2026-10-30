@@ -1,2 +1,3 @@
 # Secrets: the real values live only on the server.
 .env
+museum.yaml

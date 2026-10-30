@@ -1,7 +1,9 @@
 # Ente Photos: museum (the API), its PostgreSQL, and the web apps. The photos themselves
 # live in Hetzner Object Storage, end-to-end encrypted.
 #
-#   cd /srv/ente && docker compose up -d
+#   cd /srv/ente
+#   cp .env.example .env && cp museum.example.yaml museum.yaml   # then fill both in
+#   docker compose up -d
 #
 # Nothing here publishes a port. The blog's Caddy (/srv/prabuddh-me) reaches museum and
 # web over its own Docker network, "prabuddh-me_default", which this file joins.
