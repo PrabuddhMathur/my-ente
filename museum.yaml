@@ -1,54 +1,18 @@
-# museum's settings. Copy to museum.yaml next to compose.yaml on the server and fill in
-# every <...> there. Nothing secret goes in here: the passwords and keys are in .env, which
-# compose hands to museum as ENTE_* variables, and those win over this file.
+# museum's settings that are the same on every server. Everything else (the domain, the
+# bucket, the mailbox, the keys) is in .env: compose hands it to museum as ENTE_* variables,
+# which win over this file. Every setting museum has, with what it does:
+# https://github.com/ente/ente/blob/main/server/configurations/local.yaml
 
 db:
+  # The postgres service in compose.yaml. The password: ENTE_DB_PASSWORD.
   host: postgres
   port: 5432
   name: ente_db
   user: pguser
-  # password: ENTE_DB_PASSWORD in .env
 
 s3:
   # false: an external bucket over HTTPS (true is for a local MinIO without SSL).
   are_local_buckets: false
   # Path style (endpoint/bucket/...) is Ente's default; Backblaze and Hetzner both take it.
   use_path_style_urls: true
-  # "b2-eu-cen" is a name hardcoded in Ente for the primary bucket, and saved next to every
-  # file in the database: keep it, whichever provider holds the bucket. Moving to another
-  # one means copying the bucket's contents and changing the lines below and the key in .env.
-  # The quickstart also defines "wasabi-eu-central-2-v3" and "scw-eu-fr-v3": those are the
-  # replicas, used only if replication is turned on, so one bucket is enough here.
-  b2-eu-cen:
-    # key and secret: ENTE_S3_B2_EU_CEN_KEY and ENTE_S3_B2_EU_CEN_SECRET in .env.
-    # Without https://, as Ente's docs write it. The region is the endpoint's middle part.
-    #   Backblaze: the bucket's page shows it, e.g. s3.eu-central-003.backblazeb2.com
-    #   Hetzner:   fsn1.your-objectstorage.com (or nbg1, hel1), region fsn1
-    endpoint: <bucket endpoint>
-    region: <region>
-    bucket: <bucket name>
-
-# Where the web apps live, for the links museum hands out. Only the albums app is hosted here.
-# The others (accounts, cast, embed-albums, public-memories, public-locker, public-paste,
-# photobook) each need a Caddy block for their port on web before they go in.
-apps:
-  public-albums: https://albums.prabuddh.in
-
-# Email, for sign-up and login codes. Port 587 with encryption left empty: museum connects and
-# upgrades with STARTTLS, and refuses to send the password if that upgrade fails. Not 465 with
-# "ssl": Hetzner Cloud blocks outgoing 465 (and 25) by default. The blog's newsletter uses 587 too.
-smtp:
-  host: smtp.hostinger.com
-  port: 587
-  username: <mailbox, e.g. photos@prabuddh.in>
-  # password: ENTE_SMTP_PASSWORD in .env
-  email: <the same mailbox>
-  # sender-name: Photos
-
-internal:
-  # With email working, anyone who finds the site can sign up and fill your bucket. Set this
-  # to true once your accounts exist; turn it back to false for a moment to add someone.
-  disable-registration: false
-  # Who may use the admin CLI. Without it, the first account to sign up is the admin.
-  # admins:
-  #   - <user_id>
+  # The bucket itself ("b2-eu-cen") comes entirely from .env: ENTE_S3_B2_EU_CEN_*.

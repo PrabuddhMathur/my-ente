@@ -1,10 +1,12 @@
 # Ente Photos: museum (the API), its PostgreSQL, and the web apps. The photos themselves
-# live in Hetzner Object Storage, end-to-end encrypted.
+# live in an S3 bucket (Backblaze B2 or Hetzner Object Storage), end-to-end encrypted.
 #
 #   cd /srv/ente
-#   cp .env.example .env && chmod 600 .env                # the secrets
-#   cp museum.example.yaml museum.yaml                    # the rest; then fill both in
+#   cp .env.example .env && chmod 600 .env   # then fill it in
 #   docker compose up -d
+#
+# Everything that differs from one server to another is in .env; museum.yaml holds what
+# doesn't. After changing .env, "docker compose up -d" again: a restart keeps the old values.
 #
 # Nothing here publishes a port. The server's Caddy (the edge stack in /srv/edge) reaches
 # museum and web over the shared "edge" network, with the sites in caddy/Caddyfile. That
@@ -21,17 +23,31 @@ x-logging: &logging
 services:
   museum:
     image: ghcr.io/ente/server:latest
-    # The secrets, from .env. museum reads ENTE_* variables over museum.yaml (s3.b2-eu-cen.key
-    # becomes ENTE_S3_B2_EU_CEN_KEY). Each is required: a missing key or JWT secret would
-    # otherwise fall back to the public example values built into the image.
+    # This server's settings, from .env. museum reads ENTE_* variables over museum.yaml
+    # (s3.b2-eu-cen.bucket becomes ENTE_S3_B2_EU_CEN_BUCKET). The keys and the JWT secret are
+    # required: without them museum would use the public example values built into its image.
     environment:
       ENTE_DB_PASSWORD: ${ENTE_DB_PASSWORD:?Set ENTE_DB_PASSWORD in .env}
       ENTE_KEY_ENCRYPTION: ${ENTE_KEY_ENCRYPTION:?Set ENTE_KEY_ENCRYPTION in .env}
       ENTE_KEY_HASH: ${ENTE_KEY_HASH:?Set ENTE_KEY_HASH in .env}
       ENTE_JWT_SECRET: ${ENTE_JWT_SECRET:?Set ENTE_JWT_SECRET in .env}
+      ENTE_S3_B2_EU_CEN_ENDPOINT: ${ENTE_S3_B2_EU_CEN_ENDPOINT:?Set ENTE_S3_B2_EU_CEN_ENDPOINT in .env}
+      ENTE_S3_B2_EU_CEN_REGION: ${ENTE_S3_B2_EU_CEN_REGION:?Set ENTE_S3_B2_EU_CEN_REGION in .env}
+      ENTE_S3_B2_EU_CEN_BUCKET: ${ENTE_S3_B2_EU_CEN_BUCKET:?Set ENTE_S3_B2_EU_CEN_BUCKET in .env}
       ENTE_S3_B2_EU_CEN_KEY: ${ENTE_S3_B2_EU_CEN_KEY:?Set ENTE_S3_B2_EU_CEN_KEY in .env}
       ENTE_S3_B2_EU_CEN_SECRET: ${ENTE_S3_B2_EU_CEN_SECRET:?Set ENTE_S3_B2_EU_CEN_SECRET in .env}
-      ENTE_SMTP_PASSWORD: ${ENTE_SMTP_PASSWORD:?Set ENTE_SMTP_PASSWORD in .env}
+      # The address in the public links museum hands out; caddy/Caddyfile serves it.
+      ENTE_APPS_PUBLIC_ALBUMS: https://albums.${DOMAIN:?Set DOMAIN in .env}
+      # Email is optional: with no host, museum sends none.
+      ENTE_SMTP_HOST: ${ENTE_SMTP_HOST:-}
+      ENTE_SMTP_PORT: ${ENTE_SMTP_PORT:-587}
+      ENTE_SMTP_ENCRYPTION: ${ENTE_SMTP_ENCRYPTION:-}
+      ENTE_SMTP_USERNAME: ${ENTE_SMTP_USERNAME:-}
+      ENTE_SMTP_PASSWORD: ${ENTE_SMTP_PASSWORD:-}
+      ENTE_SMTP_EMAIL: ${ENTE_SMTP_EMAIL:-}
+      ENTE_SMTP_SENDER_NAME: ${ENTE_SMTP_SENDER_NAME:-}
+      ENTE_INTERNAL_DISABLE_REGISTRATION: ${ENTE_INTERNAL_DISABLE_REGISTRATION:-false}
+      ENTE_INTERNAL_ADMIN: ${ENTE_INTERNAL_ADMIN:-}
     volumes:
       - ./museum.yaml:/museum.yaml:ro
     networks:
@@ -51,12 +67,12 @@ services:
 
   # Serves the web apps: photos on 3000, albums (public shared links) on 3002. The image has
   # more (accounts 3001, auth 3003, cast 3004, embed 3006, memories 3010...): to use one, give
-  # it a block in caddy/Caddyfile and its address under "apps" in museum.yaml.
+  # it a block in caddy/Caddyfile and give museum its address (ENTE_APPS_CAST and so on).
   web:
     image: ghcr.io/ente/web:latest
     environment:
-      # The only setting the image reads. The albums address comes from museum.yaml.
-      ENTE_API_ORIGIN: https://api.photos.prabuddh.in
+      # The only setting the image reads. The albums address comes from museum.
+      ENTE_API_ORIGIN: https://api.photos.${DOMAIN:?Set DOMAIN in .env}
     networks:
       - edge
     restart: unless-stopped
