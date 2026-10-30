@@ -1,0 +1,81 @@
+# Ente Photos: museum (the API), its PostgreSQL, and the web apps. The photos themselves
+# live in Hetzner Object Storage, end-to-end encrypted.
+#
+#   cd /srv/ente && docker compose up -d
+#
+# Nothing here publishes a port. The blog's Caddy (/srv/prabuddh-me) reaches museum and
+# web over its own Docker network, "prabuddh-me_default", which this file joins.
+# Start the blog first: that network must exist.
+
+name: ente
+
+x-logging: &logging
+  driver: local
+  options:
+    max-size: 10m
+    max-file: "5"
+
+services:
+  museum:
+    image: ghcr.io/ente/server:latest
+    volumes:
+      - ./museum.yaml:/museum.yaml:ro
+    networks:
+      default:
+      edge:
+        aliases: [ente-museum]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/ping"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+    restart: unless-stopped
+    logging: *logging
+
+  # Serves the web apps: photos on 3000, albums (public shared links) on 3002. The image has
+  # more (accounts 3001, auth 3003, cast 3004, embed 3006, memories 3010...): to use one, give
+  # it a Caddy block and its address under "apps" in museum.yaml.
+  web:
+    image: ghcr.io/ente/web:latest
+    environment:
+      # The only setting the image reads. The albums address comes from museum.yaml.
+      ENTE_API_ORIGIN: https://api.photos.prabuddh.in
+    networks:
+      edge:
+        aliases: [ente-web]
+    restart: unless-stopped
+    logging: *logging
+
+  # Only on Ente's own network: Caddy and the blog can't reach it.
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ente_db
+      POSTGRES_USER: pguser
+      POSTGRES_PASSWORD: ${ENTE_DB_PASSWORD:?Set ENTE_DB_PASSWORD in .env (openssl rand -hex 24)}
+    volumes:
+      - ente_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pguser -d ente_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+      start_interval: 1s
+    restart: unless-stopped
+    logging: *logging
+
+networks:
+  default:
+  edge:
+    external: true
+    name: prabuddh-me_default
+
+volumes:
+  # Ente's metadata and keys. Without it the files in the bucket are unreadable: back it up.
+  ente_db:
+

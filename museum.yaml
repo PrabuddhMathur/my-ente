@@ -1,0 +1,41 @@
+# museum's settings. Fill in every <...> on the server, never commit the filled-in file.
+
+db:
+  host: postgres
+  port: 5432
+  name: ente_db
+  user: pguser
+  password: <same as ENTE_DB_PASSWORD in .env>
+
+s3:
+  # false: an external bucket over HTTPS (true is for a local MinIO without SSL).
+  are_local_buckets: false
+  # Hetzner takes both URL styles; path style (endpoint/bucket/...) is Ente's default.
+  use_path_style_urls: true
+  # "b2-eu-cen" is a name hardcoded in Ente for the primary bucket: keep it as it is.
+  # The quickstart also defines "wasabi-eu-central-2-v3" and "scw-eu-fr-v3": those are the
+  # replicas, used only if replication is turned on, so one bucket is enough here.
+  b2-eu-cen:
+    key: <Hetzner S3 access key>
+    secret: <Hetzner S3 secret key>
+    endpoint: https://fsn1.your-objectstorage.com   # your bucket's location: fsn1, nbg1 or hel1
+    region: fsn1
+    bucket: <bucket name>
+
+key:
+  encryption: <openssl rand -base64 32>
+  hash: <openssl rand -base64 64 | tr -d '\n'>
+
+jwt:
+  secret: <openssl rand -base64 32 | tr '+/' '-_'>
+
+# Where the web apps live, for the links museum hands out. Only the albums app is hosted here.
+# The others (accounts, cast, embed-albums, public-memories, public-locker, public-paste,
+# photobook) each need a Caddy block for their port on ente-web before they go in.
+apps:
+  public-albums: https://albums.prabuddh.in
+
+# After your account exists (see the guide): your user id, so the CLI accepts you as admin.
+# internal:
+#   admins:
+#     - <user_id>
