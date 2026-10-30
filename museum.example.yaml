@@ -36,7 +36,21 @@ jwt:
 apps:
   public-albums: https://albums.prabuddh.in
 
-# After your account exists (see the guide): your user id, so the CLI accepts you as admin.
-# internal:
-#   admins:
-#     - <user_id>
+# Email, for sign-up and login codes. Port 587 with encryption left empty: museum connects and
+# upgrades with STARTTLS, and refuses to send the password if that upgrade fails. Not 465 with
+# "ssl": Hetzner Cloud blocks outgoing 465 (and 25) by default. The blog's newsletter uses 587 too.
+smtp:
+  host: smtp.hostinger.com
+  port: 587
+  username: <mailbox, e.g. photos@prabuddh.in>
+  password: <its password>
+  email: <the same mailbox>
+  # sender-name: Photos
+
+internal:
+  # With email working, anyone who finds the site can sign up and fill your bucket. Set this
+  # to true once your accounts exist; turn it back to false for a moment to add someone.
+  disable-registration: false
+  # Who may use the admin CLI. Without it, the first account to sign up is the admin.
+  # admins:
+  #   - <user_id>

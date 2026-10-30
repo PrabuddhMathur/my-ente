@@ -5,9 +5,9 @@
 #   cp .env.example .env && cp museum.example.yaml museum.yaml   # then fill both in
 #   docker compose up -d
 #
-# Nothing here publishes a port. The blog's Caddy (/srv/prabuddh-me) reaches museum and
-# web over its own Docker network, "prabuddh-me_default", which this file joins.
-# Start the blog first: that network must exist.
+# Nothing here publishes a port. The server's Caddy (the edge stack in /srv/edge) reaches
+# museum and web over the shared "edge" network, with the sites in caddy/Caddyfile. That
+# network must exist first (edge's README); Caddy itself needn't be running.
 
 name: ente
 
@@ -23,9 +23,8 @@ services:
     volumes:
       - ./museum.yaml:/museum.yaml:ro
     networks:
-      default:
-      edge:
-        aliases: [ente-museum]
+      - default
+      - edge
     depends_on:
       postgres:
         condition: service_healthy
@@ -40,15 +39,14 @@ services:
 
   # Serves the web apps: photos on 3000, albums (public shared links) on 3002. The image has
   # more (accounts 3001, auth 3003, cast 3004, embed 3006, memories 3010...): to use one, give
-  # it a Caddy block and its address under "apps" in museum.yaml.
+  # it a block in caddy/Caddyfile and its address under "apps" in museum.yaml.
   web:
     image: ghcr.io/ente/web:latest
     environment:
       # The only setting the image reads. The albums address comes from museum.yaml.
       ENTE_API_ORIGIN: https://api.photos.prabuddh.in
     networks:
-      edge:
-        aliases: [ente-web]
+      - edge
     restart: unless-stopped
     logging: *logging
 
@@ -73,9 +71,10 @@ services:
 
 networks:
   default:
+  # Shared with Caddy and the other apps, and so are the names on it: no other app may
+  # put a "museum" or "web" there (edge's README).
   edge:
     external: true
-    name: prabuddh-me_default
 
 volumes:
   # Ente's metadata and keys. Without it the files in the bucket are unreadable: back it up.

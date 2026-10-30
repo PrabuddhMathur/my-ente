@@ -1,0 +1,23 @@
+# Ente Photos' sites. The server's Caddy (the edge stack in /srv/edge) mounts this folder at
+# /sites/ente and imports this file; DOMAIN and HSTS_SECONDS come from its .env. museum and
+# web are reached over the shared "edge" network. Photos go straight to the bucket, not
+# through here. After changing this file: "Day to day" in edge's README.
+
+photos.{$DOMAIN} {
+	encode zstd gzip
+	header Strict-Transport-Security "max-age={$HSTS_SECONDS:3600}"
+	header -X-Powered-By
+	reverse_proxy web:3000
+}
+
+api.photos.{$DOMAIN} {
+	header Strict-Transport-Security "max-age={$HSTS_SECONDS:3600}"
+	reverse_proxy museum:8080
+}
+
+albums.{$DOMAIN} {
+	encode zstd gzip
+	header Strict-Transport-Security "max-age={$HSTS_SECONDS:3600}"
+	header -X-Powered-By
+	reverse_proxy web:3002
+}
