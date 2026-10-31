@@ -42,6 +42,7 @@ services:
       # serves them. museum also serves shared albums only to pages at exactly these origins.
       ENTE_APPS_PUBLIC_ALBUMS: https://albums.${DOMAIN:?Set DOMAIN in .env}
       ENTE_APPS_EMBED_ALBUMS: https://embed.${DOMAIN:?Set DOMAIN in .env}
+      ENTE_APPS_CAST: https://cast.${DOMAIN:?Set DOMAIN in .env}
       # Email is optional: with no host, museum sends none.
       ENTE_SMTP_HOST: ${ENTE_SMTP_HOST:-}
       ENTE_SMTP_PORT: ${ENTE_SMTP_PORT:-587}

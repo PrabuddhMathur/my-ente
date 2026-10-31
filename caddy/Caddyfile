@@ -29,3 +29,11 @@ embed.{$DOMAIN} {
 	header -X-Powered-By
 	reverse_proxy web:3006
 }
+
+#Casting to the TV 
+cast.{$DOMAIN} {
+	encode zstd gzip
+	header Strict-Transport-Security "max-age={$HSTS_SECONDS:3600}"
+	header -X-Powered-By
+	reverse_proxy web:3004
+}
