@@ -7,6 +7,8 @@
 #
 # Everything that differs from one server to another is in .env; museum.yaml holds what
 # doesn't. After changing .env, "docker compose up -d" again: a restart keeps the old values.
+# After a git pull that changes museum.yaml, "docker compose up -d --force-recreate museum":
+# it's mounted as a single file, so museum keeps seeing the old one until it's recreated.
 #
 # Nothing here publishes a port. The server's Caddy (the edge stack in /srv/edge) reaches
 # museum and web over the shared "edge" network, with the sites in caddy/Caddyfile. That
@@ -36,8 +38,10 @@ services:
       ENTE_S3_B2_EU_CEN_BUCKET: ${ENTE_S3_B2_EU_CEN_BUCKET:?Set ENTE_S3_B2_EU_CEN_BUCKET in .env}
       ENTE_S3_B2_EU_CEN_KEY: ${ENTE_S3_B2_EU_CEN_KEY:?Set ENTE_S3_B2_EU_CEN_KEY in .env}
       ENTE_S3_B2_EU_CEN_SECRET: ${ENTE_S3_B2_EU_CEN_SECRET:?Set ENTE_S3_B2_EU_CEN_SECRET in .env}
-      # The address in the public links museum hands out; caddy/Caddyfile serves it.
+      # The addresses in the public links and embed code museum hands out; caddy/Caddyfile
+      # serves them. museum also serves shared albums only to pages at exactly these origins.
       ENTE_APPS_PUBLIC_ALBUMS: https://albums.${DOMAIN:?Set DOMAIN in .env}
+      ENTE_APPS_EMBED_ALBUMS: https://embed.${DOMAIN:?Set DOMAIN in .env}
       # Email is optional: with no host, museum sends none.
       ENTE_SMTP_HOST: ${ENTE_SMTP_HOST:-}
       ENTE_SMTP_PORT: ${ENTE_SMTP_PORT:-587}
@@ -65,9 +69,10 @@ services:
     restart: unless-stopped
     logging: *logging
 
-  # Serves the web apps: photos on 3000, albums (public shared links) on 3002. The image has
-  # more (accounts 3001, auth 3003, cast 3004, embed 3006, memories 3010...): to use one, give
-  # it a block in caddy/Caddyfile and give museum its address (ENTE_APPS_CAST and so on).
+  # Serves the web apps: photos on 3000, albums (public shared links) on 3002, embed (albums in
+  # other sites' frames) on 3006. The image has more (accounts 3001, auth 3003, cast 3004,
+  # share 3005, paste 3008, locker 3009, memories 3010): to use one, give it a block in
+  # caddy/Caddyfile and, if museum links to it, its address (ENTE_APPS_CAST and so on).
   web:
     image: ghcr.io/ente/web:latest
     environment:
